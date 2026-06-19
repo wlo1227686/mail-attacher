@@ -19,6 +19,7 @@ async function main() {
   const config = loadConfig();
   await ensureDir(config.downloadDir);
 
+  console.log(`Mail 服務：${config.provider}（${config.imap.host}）`);
   console.log(`信件夾：${config.filter.mailbox}`);
   console.log(`篩選：${describeFilter(config.filter)}`);
   console.log(`輸出目錄：${config.downloadDir}`);

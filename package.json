@@ -1,7 +1,7 @@
 {
-  "name": "yahoo-mail-pdf-fetcher",
+  "name": "mail-pdf-fetcher",
   "version": "1.0.0",
-  "description": "從 Yahoo Mail 依指定條件撈取信件內的 PDF 附件",
+  "description": "透過 IMAP 從信箱（Yahoo / Gmail 等）依指定條件撈取信件內的 PDF 附件",
   "type": "module",
   "main": "src/index.js",
   "scripts": {

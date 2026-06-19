@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import path from 'node:path';
+import { resolveProvider } from './providers.js';
 
 /**
  * 將 YYYY-MM-DD 字串轉成 Date；無效或空字串回傳 null。
@@ -24,17 +25,27 @@ function str(value) {
 }
 
 export function loadConfig() {
-  const user = str(process.env.YAHOO_USER);
-  const pass = str(process.env.YAHOO_APP_PASSWORD);
+  // Mail 服務：預設 yahoo；其餘走相同 IMAP 呼叫，只換目的端連線資訊。
+  const provider = str(process.env.MAIL_PROVIDER) || 'yahoo';
+
+  // 帳密：優先用通用變數，向後相容舊的 YAHOO_USER / YAHOO_APP_PASSWORD。
+  const user = str(process.env.MAIL_USER) || str(process.env.YAHOO_USER);
+  const pass = str(process.env.MAIL_APP_PASSWORD) || str(process.env.YAHOO_APP_PASSWORD);
 
   const missing = [];
-  if (!user) missing.push('YAHOO_USER');
-  if (!pass) missing.push('YAHOO_APP_PASSWORD');
+  if (!user) missing.push('MAIL_USER（或 YAHOO_USER）');
+  if (!pass) missing.push('MAIL_APP_PASSWORD（或 YAHOO_APP_PASSWORD）');
   if (missing.length) {
     throw new Error(
       `缺少必要設定：${missing.join(', ')}。請複製 .env.example 為 .env 並填入。`
     );
   }
+
+  // 依 provider 查出 IMAP host / port（custom 時讀 IMAP_HOST / IMAP_PORT）。
+  const imapTarget = resolveProvider(provider, {
+    host: str(process.env.IMAP_HOST),
+    port: process.env.IMAP_PORT ? Number(process.env.IMAP_PORT) : undefined,
+  });
 
   // 下載根目錄（固定，所有東西都放這底下）
   const outputRoot = str(process.env.DOWNLOAD_DIR) || './output';
@@ -51,10 +62,11 @@ export function loadConfig() {
       : path.join(outputRoot, stateName);
 
   return {
+    provider,
     imap: {
-      host: 'imap.mail.yahoo.com',
-      port: 993,
-      secure: true,
+      host: imapTarget.host,
+      port: imapTarget.port,
+      secure: imapTarget.secure,
       auth: { user, pass },
       logger: false,
     },

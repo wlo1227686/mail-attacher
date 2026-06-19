@@ -1,7 +1,8 @@
-# Yahoo Mail PDF 撈取工具
+# Mail PDF 撈取工具
 
-從 Yahoo Mail 依指定條件（寄件者、主旨、日期區間、信件夾／未讀）篩選信件，
-自動下載信件內的 **PDF 附件** 到本機資料夾。透過 IMAP + 應用程式密碼存取。
+從信箱（**Yahoo / Gmail**，可擴充）依指定條件（寄件者、主旨、日期區間、信件夾／未讀）
+篩選信件，自動下載信件內的 **PDF 附件** 到本機資料夾。透過 IMAP + 應用程式密碼存取。
+Yahoo、Gmail 都走 IMAP、呼叫方式相同，只需用 `MAIL_PROVIDER` 切換目的端服務。
 
 ## 需求
 - Node.js v20 以上（執行需要 `--env-file`，該功能自 v20 起提供）
@@ -11,14 +12,20 @@
 npm install
 ```
 
-## 取得 Yahoo 應用程式密碼
-Yahoo 不允許第三方程式用一般登入密碼，必須使用「應用程式密碼」：
+## 取得應用程式密碼
+不論 Yahoo 或 Gmail，都不允許第三方程式用一般登入密碼，必須使用「應用程式密碼」：
 
+**Yahoo**
 1. 登入 Yahoo → 帳號資訊 → **帳號安全**
 2. 找到「產生應用程式密碼」(Generate app password)
 3. 命名（例如 `pdf-fetcher`）後產生，複製那串密碼
 
-> 若找不到該選項，需先確認帳號已開啟兩步驟驗證。
+**Gmail**
+1. 先在 Google 帳戶開啟**兩步驟驗證**（未開啟就不會有應用程式密碼選項）
+2. Google 帳戶 → 安全性 → **應用程式密碼**
+3. 命名後產生，複製那串 16 碼密碼
+
+> 兩者都需先開啟兩步驟驗證才能產生應用程式密碼。
 
 ## 設定
 複製範本並填入帳號與篩選條件：
@@ -33,8 +40,10 @@ cp .env.example .env
 
 | 變數 | 說明 |
 |------|------|
-| `YAHOO_USER` | Yahoo 信箱完整地址（必填） |
-| `YAHOO_APP_PASSWORD` | 上一步取得的應用程式密碼（必填） |
+| `MAIL_PROVIDER` | Mail 服務：`yahoo`（預設）／`gmail`／`custom`；決定 IMAP 連線目的端 |
+| `MAIL_USER` | 信箱完整地址（必填；相容舊名 `YAHOO_USER`） |
+| `MAIL_APP_PASSWORD` | 上一步取得的應用程式密碼（必填；相容舊名 `YAHOO_APP_PASSWORD`） |
+| `IMAP_HOST` / `IMAP_PORT` | 僅 `MAIL_PROVIDER=custom` 時需要，自訂 IMAP 主機與埠（預設埠 993） |
 | `FILTER_FROM` | 只抓此寄件者的信 |
 | `FILTER_SUBJECT` | 主旨需包含的關鍵字 |
 | `FILTER_SINCE` / `FILTER_BEFORE` | 日期區間，格式 `YYYY-MM-DD`（含起、不含迄） |

@@ -4,8 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 這是什麼
 
-一個 CLI 工具（`yahoo-mail-pdf-fetcher`），透過 IMAP 連到 Yahoo Mail，依寄件者／主旨／
-日期／信件夾／未讀等條件篩選信件，並把符合的 **PDF 附件**下載到本機資料夾。
+一個 CLI 工具（`mail-pdf-fetcher`），透過 IMAP 連到信箱（**Yahoo / Gmail**，可擴充），
+依寄件者／主旨／日期／信件夾／未讀等條件篩選信件，並把符合的 **PDF 附件**下載到本機資料夾。
 ES modules、無建置步驟、無測試、未設定 linter。
 
 ## 常用指令
@@ -33,11 +33,14 @@ node --env-file=.env.sinopac src/index.js
 由 `src/index.js` → `main()` 串起的單一線性流程。各模組都是純函式／class 匯出，
 只在 `index.js` 裡組裝：
 
-- **`config.js`** — `loadConfig()` 從 `process.env` 讀取所有設定，驗證兩個必填變數
-  （`YAHOO_USER`、`YAHOO_APP_PASSWORD`），回傳一個固定形狀的設定物件
-  （`imap`、`filter`、`downloadDir`、`naming`、`dedupe`、`stateFile`…）。
-  這是所有選項的**唯一真實來源 — 新增設定都加在這裡**。IMAP host 寫死為
-  `imap.mail.yahoo.com:993`。
+- **`providers.js`** — `resolveProvider()` 是支援的 Mail 服務（IMAP）連線資訊查表。
+  Yahoo、Gmail 都走 IMAP、呼叫方式相同，差別只在目的端 host/port，**新增服務只要在
+  `PROVIDERS` 加一筆**。`custom` 則改讀 `IMAP_HOST`／`IMAP_PORT`。
+- **`config.js`** — `loadConfig()` 從 `process.env` 讀取所有設定，驗證必填的帳號與密碼
+  （`MAIL_USER`／`MAIL_APP_PASSWORD`，相容舊名 `YAHOO_USER`／`YAHOO_APP_PASSWORD`），
+  回傳一個固定形狀的設定物件（`provider`、`imap`、`filter`、`downloadDir`、`naming`、
+  `dedupe`、`stateFile`…）。這是所有選項的**唯一真實來源 — 新增設定都加在這裡**。
+  IMAP host/port 不再寫死，改由 `MAIL_PROVIDER`（預設 `yahoo`）經 `resolveProvider()` 帶入。
 - **`mailClient.js`** — `MailClient` 包裝 `imapflow`。注意刻意的三段式抓取以壓低記憶體／
   成本：`search()`（只取 UID）→ `fetchEnvelopes()`（只取 Message-ID，供去重用）→
   `fetchSources()`（取完整原始信件，透過 callback 逐封串流處理，避免所有信件同時進記憶體）。
@@ -64,7 +67,7 @@ PDF 落在 `DOWNLOAD_DIR/OUTPUT_FOLDER/`；去重狀態檔放在 `DOWNLOAD_DIR` 
 （預設 `./output/processed.json`，但若 `STATE_FILE` 帶路徑分隔或為絕對路徑則照填的位置）。
 以 `.env.example` 為範本複製出 `.env` 並填入帳密與篩選條件。
 
-認證用的是 Yahoo **應用程式密碼**，不是帳號登入密碼。
+認證用的是各服務（Yahoo / Gmail）的**應用程式密碼**，不是帳號登入密碼。
 
 ## 慣例
 
