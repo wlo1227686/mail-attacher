@@ -1,0 +1,17 @@
+# 相依套件
+node_modules/
+
+# 環境設定（含帳號與應用程式密碼）— 但保留範本
+.env
+.env.*
+!.env.example
+
+# 下載輸出與去重狀態檔
+output/
+downloads/
+*.pdf
+processed.json
+*.processed.json
+
+# 系統檔
+.DS_Store
