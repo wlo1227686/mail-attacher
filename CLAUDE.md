@@ -37,7 +37,7 @@ node --env-file=.env.sinopac src/index.js
   Yahoo、Gmail 都走 IMAP、呼叫方式相同，差別只在目的端 host/port，**新增服務只要在
   `PROVIDERS` 加一筆**。`custom` 則改讀 `IMAP_HOST`／`IMAP_PORT`。
 - **`config.js`** — `loadConfig()` 從 `process.env` 讀取所有設定，驗證必填的帳號與密碼
-  （`MAIL_USER`／`MAIL_APP_PASSWORD`，相容舊名 `YAHOO_USER`／`YAHOO_APP_PASSWORD`），
+  （`MAIL_USER`／`MAIL_APP_PASSWORD`），
   回傳一個固定形狀的設定物件（`provider`、`imap`、`filter`、`downloadDir`、`naming`、
   `dedupe`、`stateFile`…）。這是所有選項的**唯一真實來源 — 新增設定都加在這裡**。
   IMAP host/port 不再寫死，改由 `MAIL_PROVIDER`（預設 `yahoo`）經 `resolveProvider()` 帶入。

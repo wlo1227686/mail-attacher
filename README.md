@@ -41,8 +41,8 @@ cp .env.example .env
 | 變數 | 說明 |
 |------|------|
 | `MAIL_PROVIDER` | Mail 服務：`yahoo`（預設）／`gmail`／`custom`；決定 IMAP 連線目的端 |
-| `MAIL_USER` | 信箱完整地址（必填；相容舊名 `YAHOO_USER`） |
-| `MAIL_APP_PASSWORD` | 上一步取得的應用程式密碼（必填；相容舊名 `YAHOO_APP_PASSWORD`） |
+| `MAIL_USER` | 信箱完整地址（必填） |
+| `MAIL_APP_PASSWORD` | 上一步取得的應用程式密碼（必填） |
 | `IMAP_HOST` / `IMAP_PORT` | 僅 `MAIL_PROVIDER=custom` 時需要，自訂 IMAP 主機與埠（預設埠 993） |
 | `FILTER_FROM` | 只抓此寄件者的信 |
 | `FILTER_SUBJECT` | 主旨需包含的關鍵字 |
@@ -122,6 +122,7 @@ node --env-file=.env src/index.js
 使用具名設定檔（例如 `.env.sinopac`）：
 ```bash
 node --env-file=.env.sinopac src/index.js
+node --env-file=.env.fet_telecom src/index.js
 ```
 
 > 需要 Node v20+ 才支援 `--env-file`。執行時會先印出信件夾、套用的篩選條件、

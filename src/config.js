@@ -28,13 +28,13 @@ export function loadConfig() {
   // Mail 服務：預設 yahoo；其餘走相同 IMAP 呼叫，只換目的端連線資訊。
   const provider = str(process.env.MAIL_PROVIDER) || 'yahoo';
 
-  // 帳密：優先用通用變數，向後相容舊的 YAHOO_USER / YAHOO_APP_PASSWORD。
-  const user = str(process.env.MAIL_USER) || str(process.env.YAHOO_USER);
-  const pass = str(process.env.MAIL_APP_PASSWORD) || str(process.env.YAHOO_APP_PASSWORD);
+  // 帳密：僅接受中性變數 MAIL_USER / MAIL_APP_PASSWORD。
+  const user = str(process.env.MAIL_USER);
+  const pass = str(process.env.MAIL_APP_PASSWORD);
 
   const missing = [];
-  if (!user) missing.push('MAIL_USER（或 YAHOO_USER）');
-  if (!pass) missing.push('MAIL_APP_PASSWORD（或 YAHOO_APP_PASSWORD）');
+  if (!user) missing.push('MAIL_USER');
+  if (!pass) missing.push('MAIL_APP_PASSWORD');
   if (missing.length) {
     throw new Error(
       `缺少必要設定：${missing.join(', ')}。請複製 .env.example 為 .env 並填入。`
