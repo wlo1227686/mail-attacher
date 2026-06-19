@@ -2,73 +2,72 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## What this is
+## 這是什麼
 
-A CLI tool (`yahoo-mail-pdf-fetcher`) that connects to Yahoo Mail over IMAP, filters
-messages by sender/subject/date/folder/unread, and downloads matching **PDF attachments**
-to a local directory. ES modules, no build step, no tests, no linter configured.
+一個 CLI 工具（`yahoo-mail-pdf-fetcher`），透過 IMAP 連到 Yahoo Mail，依寄件者／主旨／
+日期／信件夾／未讀等條件篩選信件，並把符合的 **PDF 附件**下載到本機資料夾。
+ES modules、無建置步驟、無測試、未設定 linter。
 
-## Commands
+## 常用指令
 
 ```bash
 npm install
 
-# Run with the default .env (config is loaded purely from env vars):
-npm start                                   # = node --env-file=.env src/index.js
+# 使用預設 .env 執行（npm start 走 dotenv 載入 .env）：
+npm start                              # = node src/index.js
 
-# Run with a named profile (one per mail source — .env.sinopac, .env.cathay, …):
+# 使用具名設定檔（一個來源一份 — .env.sinopac、.env.cathay…）：
 node --env-file=.env.sinopac src/index.js
 ```
 
-Requires **Node v20+** at runtime: the entrypoint depends on `--env-file`, which is the
-only way config reaches the program. `dotenv/config` is also imported in `config.js`, so
-`.env` is loaded even when `--env-file` is absent — but named profiles only work via
-`--env-file`. (`package.json` says `engines.node >=18`, but v20 is the real floor.)
+設定載入有兩條路徑，行為略有不同，動手前務必分清楚：
 
-## Architecture
+- `config.js` 第一行 `import 'dotenv/config'`，所以 `npm start`（即 `node src/index.js`）
+  會由 **dotenv** 自動載入 `.env`。
+- 具名設定檔（`.env.sinopac` 等）**只能**靠 `--env-file` 載入，這是 Node v20+ 才支援
+  的功能，因此實際執行的最低門檻是 **Node v20**（`package.json` 寫 `engines.node >=18`，
+  但 18 無法用具名設定檔）。
 
-Single linear pipeline orchestrated by `src/index.js` → `main()`. Modules are plain
-function/class exports, wired together only in `index.js`:
+## 架構
 
-- **`config.js`** — `loadConfig()` reads every setting from `process.env`, validates the
-  two required vars (`YAHOO_USER`, `YAHOO_APP_PASSWORD`), and returns one frozen-shape
-  config object (`imap`, `filter`, `downloadDir`, `naming`, `dedupe`, `stateFile`, …).
-  This is the single source of truth for all options — add new settings here.
-- **`mailClient.js`** — `MailClient` wraps `imapflow`. Note the deliberate three-stage
-  fetch to keep memory/cost low: `search()` (UIDs) → `fetchEnvelopes()` (Message-IDs
-  only, for dedupe) → `fetchSources()` (full raw message, streamed one-at-a-time via
-  callback so all mail is never in memory at once). `buildSearchQuery()` ANDs all filters
-  server-side; empty filter becomes `{ all: true }`.
-- **`pdfExtractor.js`** — `extractPdfs()` parses one raw message with `mailparser`, keeps
-  PDF attachments (by content-type or `.pdf` extension), applies the optional filename
-  keyword filter, then names and writes each file. `uniquePath()` adds `_1`, `_2` on
-  collision. Filename templating is two-pass in `buildFilename()`: first named
-  placeholders (`{name} {date} {from} {subject} {original} {index}`), then bare date-token
-  groups like `{YYYYMM}` formatted from the message send-time.
-- **`state.js`** — `loadState()`/`saveState()` persist a Set of processed Message-IDs as
-  JSON. Corrupt/missing state is treated as empty (never throws).
+由 `src/index.js` → `main()` 串起的單一線性流程。各模組都是純函式／class 匯出，
+只在 `index.js` 裡組裝：
 
-### Dedupe flow (the non-obvious part)
+- **`config.js`** — `loadConfig()` 從 `process.env` 讀取所有設定，驗證兩個必填變數
+  （`YAHOO_USER`、`YAHOO_APP_PASSWORD`），回傳一個固定形狀的設定物件
+  （`imap`、`filter`、`downloadDir`、`naming`、`dedupe`、`stateFile`…）。
+  這是所有選項的**唯一真實來源 — 新增設定都加在這裡**。IMAP host 寫死為
+  `imap.mail.yahoo.com:993`。
+- **`mailClient.js`** — `MailClient` 包裝 `imapflow`。注意刻意的三段式抓取以壓低記憶體／
+  成本：`search()`（只取 UID）→ `fetchEnvelopes()`（只取 Message-ID，供去重用）→
+  `fetchSources()`（取完整原始信件，透過 callback 逐封串流處理，避免所有信件同時進記憶體）。
+  `buildSearchQuery()` 把所有篩選條件在伺服器端以 AND 組合；無任何條件時退回 `{ all: true }`。
+- **`pdfExtractor.js`** — `extractPdfs()` 用 `mailparser` 解析單封原始信件，留下 PDF 附件
+  （依 content-type 或 `.pdf` 副檔名判定），套用可選的檔名關鍵字篩選後，依命名規則寫檔。
+  `uniquePath()` 在檔名衝突時補 `_1`、`_2`。`buildFilename()` 的範本展開是兩段式：先處理
+  具名佔位符（`{name} {date} {from} {subject} {original} {index}`），再處理像 `{YYYYMM}`
+  這種純日期 token 群組（以信件發送時間格式化）。
+- **`state.js`** — `loadState()`／`saveState()` 把已處理的 Message-ID 集合以 JSON 持久化。
+  狀態檔損壞或不存在一律視為空集合（永不拋例外）。
 
-When `DEDUPE=true` (default), only messages from which a PDF was **actually saved** get
-their Message-ID recorded. This is intentional: if you later loosen filters (e.g. drop
-`FILTER_PDF_NAME`), previously-skipped attachments are still picked up. State is written
-once in the `finally` block, and only if something changed (`stateChanged`). Delete the
-state file to re-fetch everything.
+### 去重流程（不直覺的部分）
 
-## Config reference
+`DEDUPE=true`（預設）時，**只有實際存下 PDF** 的信件才會把它的 Message-ID 記入狀態。
+這是刻意的：日後若放寬篩選（例如拿掉 `FILTER_PDF_NAME`），先前被略過的附件仍能被補抓。
+狀態檔只在 `finally` 區塊、且確有變動（`stateChanged`）時寫入一次。
+**想重抓全部就刪掉狀態檔。**
 
-All behavior is env-driven; see `README.md` for the full table of variables, the filename
-templating tokens, and the output-directory layout. PDFs land in
-`DOWNLOAD_DIR/OUTPUT_FOLDER/`; the dedupe state file lives at the `DOWNLOAD_DIR` root
-(default `./output/processed.json`). No `.env.example` is committed despite README
-references — create `.env` by hand from the README variable table.
+## 設定參考
 
-Auth uses a Yahoo **app password**, not the account password (IMAP host is hardcoded to
-`imap.mail.yahoo.com:993` in `config.js`).
+所有行為都由環境變數驅動；完整變數表、檔名範本 token、輸出目錄結構見 `README.md`。
+PDF 落在 `DOWNLOAD_DIR/OUTPUT_FOLDER/`；去重狀態檔放在 `DOWNLOAD_DIR` 根層
+（預設 `./output/processed.json`，但若 `STATE_FILE` 帶路徑分隔或為絕對路徑則照填的位置）。
+以 `.env.example` 為範本複製出 `.env` 並填入帳密與篩選條件。
 
-## Conventions
+認證用的是 Yahoo **應用程式密碼**，不是帳號登入密碼。
 
-- Code comments and console output are in **Traditional Chinese** — match this when editing.
-- The tool is read-only toward the mailbox by default; it never deletes/moves mail and only
-  marks messages `\Seen` when `MARK_AS_SEEN=true`.
+## 慣例
+
+- 程式註解與 console 輸出一律用**繁體中文** — 編輯時請沿用。
+- 工具預設對信箱唯讀：不刪除、不搬移信件，僅在 `MARK_AS_SEEN=true` 時把信標記為
+  `\Seen`（已讀）。
