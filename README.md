@@ -119,14 +119,22 @@ npm start
 node --env-file=.env src/index.js
 ```
 
-使用具名設定檔（例如 `.env.sinopac`）：
+使用具名設定檔（把 `<來源>` 換成你的設定檔後綴）：
 ```bash
-node --env-file=.env.sinopac src/index.js
-node --env-file=.env.fet_telecom src/index.js
+node --env-file=.env.<來源> src/index.js
 ```
 
 > 需要 Node v20+ 才支援 `--env-file`。執行時會先印出信件夾、套用的篩選條件、
 > 輸出目錄與去重狀態檔路徑，再逐封下載並顯示進度。
+
+各來源的實際執行指令請寫在本機的 `run.local.sh`（已列入 `.gitignore`、不進版控），
+避免把來源名稱提交到 git。用法：
+
+```bash
+./run.local.sh            # 列出可用來源
+./run.local.sh <來源>     # 執行指定來源
+./run.local.sh all        # 依序執行全部
+```
 
 ## 注意
 - `.env` 與 `output/` 已列入 `.gitignore`，不會進版控。

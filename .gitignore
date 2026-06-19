@@ -6,6 +6,11 @@ node_modules/
 .env.*
 !.env.example
 
+# 本機執行指令備忘（含來源名稱，不進版控）
+*.local
+*.local.sh
+run.local.sh
+
 # 下載輸出與去重狀態檔
 output/
 downloads/
